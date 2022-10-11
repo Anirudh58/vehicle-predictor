@@ -115,6 +115,7 @@ dependencies:
   - zlib=1.2.12=h5eee18b_3
   - pip:
     - numpy==1.23.3
+    - pandas==1.5.0
     - pillow==9.2.0
     - torch==1.12.1+cu113
     - torchaudio==0.12.1+cu113

@@ -1,3 +1,9 @@
 
 # ignore dataset folder
 data/VMMRdb/
+
+# ignore ipynb checkpoints
+.ipynb_checkpoints/
+
+# ignore pycache
+__pycache__/
