@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 import torch
 import torchvision
@@ -14,7 +15,7 @@ class VehiclePredictorDataset(Dataset):
     Custom dataset for VMMRdb
     """
 
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, target_make_model_labels=None, transform=None):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -37,6 +38,8 @@ class VehiclePredictorDataset(Dataset):
         self.idx_to_model = {}
         self.year_to_idx = {}
         self.idx_to_year = {}
+        self.make_model_to_idx = {}
+        self.idx_to_make_model = {}
 
         # for stats
         self.make_counts = {}
@@ -46,27 +49,42 @@ class VehiclePredictorDataset(Dataset):
 
         for i, directory in enumerate(self.directories):
 
+            make = directory.split('_')[0]
+            model = "".join(directory.split('_')[1:-1])
+            year = directory.split('_')[-1]
+            
+            # load only the make and model labels if specified
+            if target_make_model_labels is not None:
+                if make + '_' + model not in target_make_model_labels:
+                    continue
+            
             # the entire class name
             self.class_to_idx[directory] = i
             self.idx_to_class[i] = directory
 
             # the make name
-            make = directory.split('_')[0]
+            #make = directory.split('_')[0]
             if make not in self.make_to_idx:
                 self.make_to_idx[make] = len(self.make_to_idx)
                 self.idx_to_make[len(self.idx_to_make)] = make
 
             # the model name
-            model = "".join(directory.split('_')[1:-1])
+            #model = "".join(directory.split('_')[1:-1])
             if model not in self.model_to_idx:
                 self.model_to_idx[model] = len(self.model_to_idx)
                 self.idx_to_model[len(self.idx_to_model)] = model
 
             # the year
-            year = directory.split('_')[-1]
+            #year = directory.split('_')[-1]
             if year not in self.year_to_idx:
                 self.year_to_idx[year] = len(self.year_to_idx)
                 self.idx_to_year[len(self.idx_to_year)] = year
+
+            # the make and model
+            make_model = make + '_' + model
+            if make_model not in self.make_model_to_idx:
+                self.make_model_to_idx[make_model] = len(self.make_model_to_idx)
+                self.idx_to_make_model[len(self.idx_to_make_model)] = make_model
 
             # iterate through all the images in the directory
             for image in os.listdir(os.path.join(root_dir, directory)):
@@ -93,6 +111,7 @@ class VehiclePredictorDataset(Dataset):
                     self.year_counts[year] += 1
 
 
+
     def __len__(self):
         return len(self.images)
 
@@ -116,8 +135,12 @@ class VehiclePredictorDataset(Dataset):
         year = class_name.split('_')[-1]
         target['year'] = self.year_to_idx[year]
 
+        # get the make and model
+        make_model = make + '_' + model
+        target['make_model'] = self.make_model_to_idx[make_model]
+
         # load the image
-        image = torchvision.io.read_image(image)
+        image = Image.open(image).convert('RGB')
 
         if self.transform:
             image = self.transform(image)
