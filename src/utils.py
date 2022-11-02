@@ -72,7 +72,7 @@ def get_model(num_classes, backbone_model):
     
     return model
 
-def train_model(model, dataloader_train, dataloader_val, criterion, optimizer, num_epochs=25):
+def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_val, criterion, optimizer, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -118,8 +118,8 @@ def train_model(model, dataloader_train, dataloader_val, criterion, optimizer, n
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-            epoch_loss = running_loss / len(dataloader_train if phase == 'train' else dataloader_val)
-            epoch_acc = running_corrects.double() / len(dataloader_train if phase == 'train' else dataloader_val)
+            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             time_elapsed = time.time() - since
             print(f"{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f} Time: {time_elapsed:.0f}m {time_elapsed:.0f}s")
@@ -134,10 +134,11 @@ def train_model(model, dataloader_train, dataloader_val, criterion, optimizer, n
     print(f"Best val Acc: {best_acc:4f}")
 
     # save best model weights
-    torch.save(best_model_wts, os.path.join(root_path, 'models', 'resnet18_100classes_10epochs.pth'))
+    model_name = "_".join([model_info[key] for key in model_info])
+    torch.save(best_model_wts, os.path.join(root_path, 'models', f"{model_name}.pth"))
 
 
-def evaluate_model(model, dataloader_test):
+def evaluate_model(model, dataset_sizes, dataloader_test):
     model.eval()
     running_corrects = 0
 
@@ -156,7 +157,7 @@ def evaluate_model(model, dataloader_test):
         y_true.extend(labels.tolist())
         y_pred.extend(preds.tolist())
 
-    test_acc = running_corrects.double() / len(dataloader_test)
+    test_acc = running_corrects.double() / dataset_sizes['test']
     print(f"Test Acc: {test_acc:.4f}")
 
     # confusion matrix
