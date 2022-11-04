@@ -139,11 +139,14 @@ class VehiclePredictorDataset(Dataset):
         make_model = make + '_' + model
         target['make_model'] = self.make_model_to_idx[make_model]
 
-        # load the image
-        image = Image.open(image).convert('RGB')
+        # attach file path
+        target['file_path'] = image
 
         if self.transform:
+            image = Image.open(image).convert('RGB')
             image = self.transform(image)
+        else:
+            image = torchvision.io.read_image(image)
 
         return image, target
                 

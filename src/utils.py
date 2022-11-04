@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import sklearn
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 
 import torch
@@ -145,6 +145,7 @@ def evaluate_model(model, dataset_sizes, dataloader_test):
     # confusion matrix
     y_true = []
     y_pred = []
+    start_time = time.time()
     for inputs, labels in tqdm(dataloader_test, position=0, leave=True):
         inputs = inputs.to(device)
         labels = labels['make_model'].to(device)
@@ -159,8 +160,39 @@ def evaluate_model(model, dataset_sizes, dataloader_test):
 
     test_acc = running_corrects.double() / dataset_sizes['test']
     print(f"Test Acc: {test_acc:.4f}")
+    print(f"Average time per image: {(time.time() - start_time) / dataset_sizes['test']:.4f} seconds")
 
     # confusion matrix
     cm = confusion_matrix(y_true, y_pred)
+    cr = classification_report(y_true, y_pred, target_names=target_make_model_labels, output_dict=True)
     
-    return cm
+    return cm, cr
+
+def visualize_model(model, dataset, dataloader_test, num_images=6):
+    was_training = model.training
+    model.eval()
+    images_so_far = 0
+    fig = plt.figure(figsize=(25, 25))
+
+    with torch.no_grad():
+        for i, (inputs, targets) in enumerate(dataloader_test):
+            inputs = inputs.to(device)
+            labels = targets['make_model'].to(device)
+
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+
+            # iterate over batch
+            for j in range(inputs.size()[0]):
+                images_so_far += 1
+                ax = plt.subplot(num_images // 2, 2, images_so_far)
+                ax.axis('off')
+                ax.set_title(f'predicted: {target_make_model_labels[preds[j]]}\nactual: {target_make_model_labels[labels[j]]}')
+                
+                original_image = torchvision.io.read_image(targets['file_path'][j])
+                plt.imshow(np.transpose(original_image, (1, 2, 0)))
+
+                if images_so_far == num_images:
+                    model.train(mode=was_training)
+                    return
+        model.train(mode=was_training)
