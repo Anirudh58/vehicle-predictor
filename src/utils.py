@@ -61,7 +61,7 @@ def get_model(num_classes, backbone_model):
         model.fc = nn.Linear(in_features, num_classes)
 
     if backbone_model == 'mobilenet_v2':
-        model = torchvision.models.mobilenet_v2(weights='MobileNetV2_Weights.DEFAULT')
+        model = torchvision.models.mobilenet_v2(weights='MobileNet_V2_Weights.DEFAULT')
         in_features = model.classifier[1].in_features
         model.classifier[1] = nn.Linear(in_features, num_classes)
 
