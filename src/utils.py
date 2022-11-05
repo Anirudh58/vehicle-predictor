@@ -138,7 +138,7 @@ def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_v
     torch.save(best_model_wts, os.path.join(root_path, 'models', f"{model_name}.pth"))
 
 
-def evaluate_model(model, dataset_sizes, dataloader_test):
+def evaluate_model(model, dataset_sizes, dataloader_test, target_make_model_labels):
     model.eval()
     running_corrects = 0
 
@@ -168,31 +168,30 @@ def evaluate_model(model, dataset_sizes, dataloader_test):
     
     return cm, cr
 
-def visualize_model(model, dataset, dataloader_test, num_images=6):
-    was_training = model.training
+def visualize_model(model, dataset, dataloader_test, target_make_model_labels, num_images=6):
     model.eval()
     images_so_far = 0
     fig = plt.figure(figsize=(25, 25))
 
     with torch.no_grad():
+        
+        # note: batch size for dataloader_test=1 (don't change that)
         for i, (inputs, targets) in enumerate(dataloader_test):
+            images_so_far += 1
+            
             inputs = inputs.to(device)
             labels = targets['make_model'].to(device)
 
             outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
-
-            # iterate over batch
-            for j in range(inputs.size()[0]):
-                images_so_far += 1
-                ax = plt.subplot(num_images // 2, 2, images_so_far)
-                ax.axis('off')
-                ax.set_title(f'predicted: {target_make_model_labels[preds[j]]}\nactual: {target_make_model_labels[labels[j]]}')
+            
+            # plot the predictions and truths
+            ax = plt.subplot(num_images // 2, 2, images_so_far)
+            ax.axis('off')
+            ax.set_title(f'predicted: {dataset.idx_to_make_model[preds[0].item()]}\nactual: {dataset.idx_to_make_model[labels[0].item()]}')
+            original_image = torchvision.io.read_image(targets['file_path'][0])
+            ax.imshow(np.transpose(original_image, (1, 2, 0)))
+            if images_so_far == num_images:
+                break
                 
-                original_image = torchvision.io.read_image(targets['file_path'][j])
-                plt.imshow(np.transpose(original_image, (1, 2, 0)))
-
-                if images_so_far == num_images:
-                    model.train(mode=was_training)
-                    return
-        model.train(mode=was_training)
+            
