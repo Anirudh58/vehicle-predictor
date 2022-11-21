@@ -15,7 +15,7 @@ class VehiclePredictorDataset(Dataset):
     Custom dataset for VMMRdb
     """
 
-    def __init__(self, root_dir, target_make_model_labels=None, transform=None):
+    def __init__(self, root_dir, target_make_model_labels=None, target_make_model_year_labels=None, transform=None):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -40,6 +40,8 @@ class VehiclePredictorDataset(Dataset):
         self.idx_to_year = {}
         self.make_model_to_idx = {}
         self.idx_to_make_model = {}
+        self.make_model_year_to_idx = {}
+        self.idx_to_make_model_year = {}
 
         # for stats
         self.make_counts = {}
@@ -56,6 +58,11 @@ class VehiclePredictorDataset(Dataset):
             # load only the make and model labels if specified
             if target_make_model_labels is not None:
                 if make + '_' + model not in target_make_model_labels:
+                    continue
+
+            # load only the make, model and year labels if specified
+            if target_make_model_year_labels is not None:
+                if make + '_' + model + '_' + year not in target_make_model_year_labels:
                     continue
             
             # the entire class name
@@ -85,6 +92,12 @@ class VehiclePredictorDataset(Dataset):
             if make_model not in self.make_model_to_idx:
                 self.make_model_to_idx[make_model] = len(self.make_model_to_idx)
                 self.idx_to_make_model[len(self.idx_to_make_model)] = make_model
+
+            # the make model and year
+            make_model_year = make + '_' + model + '_' + year
+            if make_model_year not in self.make_model_year_to_idx:
+                self.make_model_year_to_idx[make_model_year] = len(self.make_model_year_to_idx)
+                self.idx_to_make_model_year[len(self.idx_to_make_model_year)] = make_model_year
 
             # iterate through all the images in the directory
             for image in os.listdir(os.path.join(root_dir, directory)):
@@ -138,6 +151,10 @@ class VehiclePredictorDataset(Dataset):
         # get the make and model
         make_model = make + '_' + model
         target['make_model'] = self.make_model_to_idx[make_model]
+
+        # get the make model and year
+        make_model_year = make + '_' + model + '_' + year
+        target['make_model_year'] = self.make_model_year_to_idx[make_model_year]
 
         # attach file path
         target['file_path'] = image
