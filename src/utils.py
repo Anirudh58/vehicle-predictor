@@ -72,7 +72,7 @@ def get_model(num_classes, backbone_model):
     
     return model
 
-def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_val, criterion, optimizer, num_epochs=25):
+def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_val, criterion, optimizer, target_labels, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -97,7 +97,11 @@ def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_v
             for inputs, labels in tqdm(dataloader_train if phase == 'train' else dataloader_val, position=0, leave=True):
 
                 inputs = inputs.to(device)
-                labels = labels['make_model'].to(device)
+
+                if target_labels == 'makemodel':
+                    labels = labels['make_model'].to(device)
+                elif target_labels == 'makemodelyear':
+                    labels = labels['make_model_year'].to(device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -138,7 +142,7 @@ def train_model(model, model_info, dataset_sizes, dataloader_train, dataloader_v
     torch.save(best_model_wts, os.path.join(root_path, 'models', f"{model_name}.pth"))
 
 
-def evaluate_model(model, dataset_sizes, dataloader_test, target_make_model_labels):
+def evaluate_model(model, dataset_sizes, dataloader_test, target_labels, target_labels_list):
     model.eval()
     running_corrects = 0
 
@@ -148,7 +152,11 @@ def evaluate_model(model, dataset_sizes, dataloader_test, target_make_model_labe
     start_time = time.time()
     for inputs, labels in tqdm(dataloader_test, position=0, leave=True):
         inputs = inputs.to(device)
-        labels = labels['make_model'].to(device)
+
+        if target_labels == 'makemodel':
+            labels = labels['make_model'].to(device)
+        elif target_labels == 'makemodelyear':
+            labels = labels['make_model_year'].to(device)
 
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
@@ -164,11 +172,11 @@ def evaluate_model(model, dataset_sizes, dataloader_test, target_make_model_labe
 
     # confusion matrix
     cm = confusion_matrix(y_true, y_pred)
-    cr = classification_report(y_true, y_pred, target_names=target_make_model_labels, output_dict=True)
+    cr = classification_report(y_true, y_pred, target_names=target_labels_list, output_dict=True)
     
     return cm, cr
 
-def visualize_model(model, dataset, dataloader_test, target_make_model_labels, num_images=6):
+def visualize_model(model, dataset, dataloader_test, target_labels, target_labels_list, num_images=6):
     model.eval()
     images_so_far = 0
     fig = plt.figure(figsize=(25, 25))
@@ -180,7 +188,11 @@ def visualize_model(model, dataset, dataloader_test, target_make_model_labels, n
             images_so_far += 1
             
             inputs = inputs.to(device)
-            labels = targets['make_model'].to(device)
+
+            if target_labels == 'makemodel':
+                labels = targets['make_model'].to(device)
+            elif target_labels == 'makemodelyear':
+                labels = targets['make_model_year'].to(device)
 
             outputs = model(inputs)
             _, preds = torch.max(outputs, 1)
@@ -188,7 +200,11 @@ def visualize_model(model, dataset, dataloader_test, target_make_model_labels, n
             # plot the predictions and truths
             ax = plt.subplot(num_images // 2, 2, images_so_far)
             ax.axis('off')
-            ax.set_title(f'predicted: {dataset.idx_to_make_model[preds[0].item()]}\nactual: {dataset.idx_to_make_model[labels[0].item()]}')
+
+            if target_labels == 'makemodel':
+                ax.set_title(f'predicted: {dataset.idx_to_make_model[preds[0].item()]}\nactual: {dataset.idx_to_make_model[labels[0].item()]}')
+            elif target_labels == 'makemodelyear':
+                ax.set_title(f'predicted: {dataset.idx_to_make_model_year[preds[0].item()]}\nactual: {dataset.idx_to_make_model_year[labels[0].item()]}')
             original_image = torchvision.io.read_image(targets['file_path'][0])
             ax.imshow(np.transpose(original_image, (1, 2, 0)))
             if images_so_far == num_images:
