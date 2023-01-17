@@ -7,6 +7,10 @@ cd data
 sh get_data.sh
 ```
 
+## Model repo
+
+All models are found on this [drive](https://drive.google.com/drive/folders/1RXaKgStTFnVRaLvk-eIHEGhwvQp-y1-c) folder: 
+
 ## Activating Environment
 
 ```
